@@ -36,7 +36,7 @@
 
 #define HAL_MODULE_ENABLED
 
-  /*#define HAL_ADC_MODULE_ENABLED   */
+  #define HAL_ADC_MODULE_ENABLED
 /*#define HAL_COMP_MODULE_ENABLED   */
 /*#define HAL_CORDIC_MODULE_ENABLED   */
 /*#define HAL_CRC_MODULE_ENABLED   */
@@ -78,7 +78,7 @@
 /**
   * @brief This is the list of modules where register callback can be used
   */
-#define USE_HAL_ADC_REGISTER_CALLBACKS        0U
+#define USE_HAL_ADC_REGISTER_CALLBACKS        1U
 #define USE_HAL_COMP_REGISTER_CALLBACKS       0U
 #define USE_HAL_CORDIC_REGISTER_CALLBACKS     0U
 #define USE_HAL_CRYP_REGISTER_CALLBACKS       0U

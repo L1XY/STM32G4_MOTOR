@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "adc.h"
 #include "dma.h"
 #include "tim.h"
 #include "usart.h"
@@ -119,6 +120,7 @@ int main(void)
   MX_TIM6_Init();
   MX_USART1_UART_Init();
   MX_TIM1_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim6);
 
@@ -129,6 +131,12 @@ int main(void)
   HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_1);
   HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_2);
   HAL_TIMEx_PWMN_Start(&htim1, TIM_CHANNEL_3);
+
+  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
+  HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
+  HAL_ADCEx_InjectedStart(&hadc1);
+  HAL_ADC_Start_IT(&hadc1);
+	__HAL_ADC_ENABLE_IT(&hadc1, ADC_IT_JEOC);
 
   /* USER CODE END 2 */
 
@@ -148,11 +156,20 @@ int main(void)
     HAL_Delay(100);
 #endif
 
-#if 1
+#if 0
     static uint16_t pwm_duty = 2000;
     Motor_CheckBreak();
     Motor_SetDuty(pwm_duty);
     HAL_Delay(50);
+#endif
+
+#if 1
+    HAL_Delay(100);
+    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 4000);
+    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 2000);
+    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 3600);
+    extern float vin_adc, temp_adc, v_adc, u_adc;
+    debug("vin_adc:%.3fV | temp_adc:%.3fV | v_adc:%.3fV | u_adc:%.3fV\r\n", vin_adc, temp_adc, v_adc, u_adc);
 #endif
 
     /* USER CODE END WHILE */

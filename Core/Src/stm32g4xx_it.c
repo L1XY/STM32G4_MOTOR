@@ -55,6 +55,7 @@
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
+extern ADC_HandleTypeDef hadc1;
 extern TIM_HandleTypeDef htim6;
 extern DMA_HandleTypeDef hdma_usart1_tx;
 extern UART_HandleTypeDef huart1;
@@ -215,6 +216,20 @@ void DMA1_Channel1_IRQHandler(void)
 }
 
 /**
+  * @brief This function handles ADC1 and ADC2 global interrupt.
+  */
+void ADC1_2_IRQHandler(void)
+{
+  /* USER CODE BEGIN ADC1_2_IRQn 0 */
+
+  /* USER CODE END ADC1_2_IRQn 0 */
+  HAL_ADC_IRQHandler(&hadc1);
+  /* USER CODE BEGIN ADC1_2_IRQn 1 */
+
+  /* USER CODE END ADC1_2_IRQn 1 */
+}
+
+/**
   * @brief This function handles USART1 global interrupt / USART1 wake-up interrupt through EXTI line 25.
   */
 void USART1_IRQHandler(void)
@@ -249,5 +264,24 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   {
     HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
   }
+}
+#include "stm32g4xx_hal_adc_ex.h"
+#include "adc.h"
+volatile static uint32_t vin_adc_raw, temp_adc_raw, v_adc_raw, u_adc_raw;
+volatile float vin_adc, temp_adc, v_adc, u_adc;
+void HAL_ADCEx_InjectedConvCpltCallback(ADC_HandleTypeDef* hadc)
+{
+	if(hadc == &hadc1)
+	{
+		vin_adc_raw = HAL_ADCEx_InjectedGetValue(&hadc1, ADC_INJECTED_RANK_1);
+		temp_adc_raw = HAL_ADCEx_InjectedGetValue(&hadc1, ADC_INJECTED_RANK_2);
+		v_adc_raw = HAL_ADCEx_InjectedGetValue(&hadc1, ADC_INJECTED_RANK_3);
+		u_adc_raw = HAL_ADCEx_InjectedGetValue(&hadc1, ADC_INJECTED_RANK_4);
+
+		vin_adc = vin_adc_raw * 3.3f / 4095.0f;
+		temp_adc = temp_adc_raw * 3.3f / 4095.0f;
+		v_adc = v_adc_raw * 3.3f / 4095.0f;
+		u_adc = u_adc_raw * 3.3f / 4095.0f;
+	}
 }
 /* USER CODE END 1 */
