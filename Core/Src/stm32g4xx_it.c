@@ -56,6 +56,7 @@
 
 /* External variables --------------------------------------------------------*/
 extern ADC_HandleTypeDef hadc1;
+extern FDCAN_HandleTypeDef hfdcan1;
 extern TIM_HandleTypeDef htim6;
 extern DMA_HandleTypeDef hdma_usart1_tx;
 extern UART_HandleTypeDef huart1;
@@ -230,6 +231,20 @@ void ADC1_2_IRQHandler(void)
 }
 
 /**
+  * @brief This function handles FDCAN1 interrupt 0.
+  */
+void FDCAN1_IT0_IRQHandler(void)
+{
+  /* USER CODE BEGIN FDCAN1_IT0_IRQn 0 */
+
+  /* USER CODE END FDCAN1_IT0_IRQn 0 */
+  HAL_FDCAN_IRQHandler(&hfdcan1);
+  /* USER CODE BEGIN FDCAN1_IT0_IRQn 1 */
+
+  /* USER CODE END FDCAN1_IT0_IRQn 1 */
+}
+
+/**
   * @brief This function handles USART1 global interrupt / USART1 wake-up interrupt through EXTI line 25.
   */
 void USART1_IRQHandler(void)
@@ -283,5 +298,20 @@ void HAL_ADCEx_InjectedConvCpltCallback(ADC_HandleTypeDef* hadc)
 		v_adc = v_adc_raw * 3.3f / 4095.0f;
 		u_adc = u_adc_raw * 3.3f / 4095.0f;
 	}
+}
+void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
+{
+  /* Prevent unused argument(s) compilation warning */
+  UNUSED(hfdcan);
+  UNUSED(RxFifo0ITs);
+  extern FDCAN_RxHeaderTypeDef RxHeader;
+  extern uint8_t RxData[64];
+  if (hfdcan == &hfdcan1)
+  {
+  	if (RxFifo0ITs & FDCAN_IR_RF0N)
+  	{
+  		HAL_FDCAN_GetRxMessage(&hfdcan1, FDCAN_RX_FIFO0, &RxHeader, RxData);
+  	}
+  }
 }
 /* USER CODE END 1 */

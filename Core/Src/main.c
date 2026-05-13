@@ -20,6 +20,7 @@
 #include "main.h"
 #include "adc.h"
 #include "dma.h"
+#include "fdcan.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
@@ -84,6 +85,87 @@ void Motor_CheckBreak(void)
     }
   }
 }
+FDCAN_RxHeaderTypeDef RxHeader;
+uint8_t TxData[64];
+uint8_t RxData[64];
+void FDCAN1_Config(void)
+{
+  FDCAN_FilterTypeDef sFilterConfig;
+
+  sFilterConfig.IdType = FDCAN_STANDARD_ID;
+  sFilterConfig.FilterIndex = 0;
+  sFilterConfig.FilterType = FDCAN_FILTER_RANGE;
+  sFilterConfig.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
+  sFilterConfig.FilterID1 = 0x000;
+  sFilterConfig.FilterID2 = 0x7FF;
+
+  if (HAL_FDCAN_ConfigFilter(&hfdcan1, &sFilterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+   if (HAL_FDCAN_ActivateNotification(&hfdcan1, FDCAN_IT_RX_FIFO0_NEW_MESSAGE, 0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  
+  HAL_FDCAN_Start(&hfdcan1);
+  
+}
+void FDCAN_BusOff_Recovery(void)
+{
+    HAL_FDCAN_Stop(&hfdcan1);
+
+    __HAL_FDCAN_CLEAR_FLAG(&hfdcan1, FDCAN_FLAG_BUS_OFF);
+    __HAL_FDCAN_CLEAR_FLAG(&hfdcan1, FDCAN_FLAG_ERROR_PASSIVE);
+    __HAL_FDCAN_CLEAR_FLAG(&hfdcan1, FDCAN_FLAG_ERROR_WARNING);
+
+    hfdcan1.Instance->TXFQS |= FDCAN_TXFQS_TFQF;
+
+    hfdcan1.Instance->RXF0S |= FDCAN_RXF0S_F0F;
+    hfdcan1.Instance->RXF1S |= FDCAN_RXF1S_F1F;
+
+    hfdcan1.Instance->CCCR |= FDCAN_CCCR_CCE;
+    hfdcan1.Instance->ECR = 0;
+    hfdcan1.Instance->CCCR &= ~FDCAN_CCCR_CCE;
+
+    HAL_FDCAN_Init(&hfdcan1);
+    HAL_FDCAN_Start(&hfdcan1);
+}
+HAL_StatusTypeDef FDCAN_Send_Frame(uint32_t id, uint8_t *data, uint8_t len)
+{
+  HAL_StatusTypeDef ret;
+  FDCAN_TxHeaderTypeDef TxHeader = {0};
+  uint32_t dlc;
+
+  if(len <= 8)       dlc = (uint32_t)len;
+  else if(len <= 12) dlc = FDCAN_DLC_BYTES_12;
+  else if(len <= 16) dlc = FDCAN_DLC_BYTES_16;
+  else if(len <= 20) dlc = FDCAN_DLC_BYTES_20;
+  else if(len <= 24) dlc = FDCAN_DLC_BYTES_24;
+  else if(len <= 32) dlc = FDCAN_DLC_BYTES_32;
+  else if(len <= 48) dlc = FDCAN_DLC_BYTES_48;
+  else               dlc = FDCAN_DLC_BYTES_64;
+  
+  TxHeader.Identifier = id;
+  TxHeader.IdType = FDCAN_STANDARD_ID;
+  TxHeader.TxFrameType = FDCAN_DATA_FRAME;
+  TxHeader.DataLength = dlc;
+  TxHeader.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+  TxHeader.BitRateSwitch = FDCAN_BRS_ON;
+  TxHeader.FDFormat = FDCAN_FD_CAN;
+  TxHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
+  TxHeader.MessageMarker = 33;
+
+  ret = HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &TxHeader, data);
+  if (ret == HAL_ERROR)
+  {
+	  FDCAN_BusOff_Recovery();
+	  ret = HAL_OK;
+  }
+
+  return ret;
+}
 
 /* USER CODE END 0 */
 
@@ -121,6 +203,7 @@ int main(void)
   MX_USART1_UART_Init();
   MX_TIM1_Init();
   MX_ADC1_Init();
+  MX_FDCAN1_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim6);
 
@@ -136,7 +219,9 @@ int main(void)
   HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
   HAL_ADCEx_InjectedStart(&hadc1);
   HAL_ADC_Start_IT(&hadc1);
-	__HAL_ADC_ENABLE_IT(&hadc1, ADC_IT_JEOC);
+  __HAL_ADC_ENABLE_IT(&hadc1, ADC_IT_JEOC);
+
+	FDCAN1_Config();
 
   /* USER CODE END 2 */
 
@@ -163,13 +248,21 @@ int main(void)
     HAL_Delay(50);
 #endif
 
-#if 1
-    HAL_Delay(100);
+#if 0
     __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 4000);
     __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 2000);
     __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 3600);
     extern float vin_adc, temp_adc, v_adc, u_adc;
     debug("vin_adc:%.3fV | temp_adc:%.3fV | v_adc:%.3fV | u_adc:%.3fV\r\n", vin_adc, temp_adc, v_adc, u_adc);
+    HAL_Delay(100);
+#endif
+
+#if 1
+    static uint8_t fdcan_Data = 0;
+    TxData[0] = fdcan_Data++;
+    FDCAN_Send_Frame(0x222, TxData, 32);
+    FDCAN_Send_Frame(0x666, TxData, 64);
+    HAL_Delay(500);
 #endif
 
     /* USER CODE END WHILE */
