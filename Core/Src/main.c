@@ -28,6 +28,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "debug.h"
+#include "arm_math.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -257,11 +258,18 @@ int main(void)
     HAL_Delay(100);
 #endif
 
-#if 1
+#if 0
     static uint8_t fdcan_Data = 0;
     TxData[0] = fdcan_Data++;
     FDCAN_Send_Frame(0x222, TxData, 32);
     FDCAN_Send_Frame(0x666, TxData, 64);
+    HAL_Delay(500);
+#endif
+
+#if 1
+    float testData;
+    testData = arm_sin_f32(3.1415926535897932384626/4); // sin(PI/4)
+    debug("---%.6f---", testData);
     HAL_Delay(500);
 #endif
 
