@@ -21,6 +21,7 @@
 #include "adc.h"
 #include "dma.h"
 #include "fdcan.h"
+#include "i2c.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
@@ -205,6 +206,7 @@ int main(void)
   MX_TIM1_Init();
   MX_ADC1_Init();
   MX_FDCAN1_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim6);
 
@@ -231,8 +233,8 @@ int main(void)
   while (1)
   {
 #if 0
-    HAL_Delay(500);
     HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+    HAL_Delay(500);
 #endif
 
 #if 0
@@ -266,11 +268,28 @@ int main(void)
     HAL_Delay(500);
 #endif
 
-#if 1
+#if 0
     float testData;
     testData = arm_sin_f32(3.1415926535897932384626/4); // sin(PI/4)
     debug("---%.6f---", testData);
     HAL_Delay(500);
+#endif
+
+#if 1
+    uint8_t Data[2];
+    float Angle;
+    HAL_StatusTypeDef ret;
+    ret = HAL_I2C_Mem_Read(&hi2c1, 0x6C, 0x0C, I2C_MEMADD_SIZE_8BIT, Data, 2, 1);
+    if (ret == HAL_OK)
+    {
+    	Angle = ((Data[0] << 8) | Data[1]) * 360.0f / 4096.0f;
+      debug("---%.2f---", Angle);
+    }
+    else
+    {
+    	debug("---Error---");
+    }
+    HAL_Delay(100);
 #endif
 
     /* USER CODE END WHILE */
